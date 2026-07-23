@@ -1,0 +1,50 @@
+:root,
+:root[data-theme='dark'] {
+  --bg: #121213;
+  --fg: #ffffff;
+  --fg-muted: #9a9a9c;
+  --tile-empty-border: #3a3a3c;
+  --tile-filled-border: #6b6b6d;
+  --key-bg: #818384;
+  --key-fg: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --correct: #b87a1d;
+  --present: #6a9ed4;
+  --absent: #3a3a3c;
+}
+
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --fg: #1a1a1b;
+  --fg-muted: #6b6b6d;
+  --tile-empty-border: #d3d6da;
+  --tile-filled-border: #878a8c;
+  --key-bg: #d3d6da;
+  --key-fg: #1a1a1b;
+  --overlay: rgba(0, 0, 0, 0.3);
+  --correct: #b87a1d;
+  --present: #6a9ed4;
+  --absent: #787c7f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+button {
+  font-family: inherit;
+}
