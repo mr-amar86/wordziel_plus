@@ -1,8 +1,10 @@
+import type { CSSProperties } from 'react';
 import { Tile } from './Tile';
-import { MAX_GUESSES, WORD_LENGTH } from '../game/types';
-import type { GuessRow } from '../game/types';
+import { MAX_GUESSES } from '../game/types';
+import type { GuessRow, WordLength } from '../game/types';
 
 interface BoardProps {
+  wordLength: WordLength;
   guesses: GuessRow[];
   currentGuess: string;
   revealingRow: number | null;
@@ -12,7 +14,7 @@ interface BoardProps {
 
 const REVEAL_STEP_MS = 300;
 
-export function Board({ guesses, currentGuess, revealingRow, shakeRow, won }: BoardProps) {
+export function Board({ wordLength, guesses, currentGuess, revealingRow, shakeRow, won }: BoardProps) {
   const rows = Array.from({ length: MAX_GUESSES }, (_, rowIndex) => {
     const completed = guesses[rowIndex];
     const isCurrent = rowIndex === guesses.length;
@@ -23,8 +25,8 @@ export function Board({ guesses, currentGuess, revealingRow, shakeRow, won }: Bo
     const letters = completed
       ? completed.map((l) => l.letter)
       : isCurrent
-        ? currentGuess.padEnd(WORD_LENGTH, ' ').split('')
-        : new Array(WORD_LENGTH).fill(' ');
+        ? currentGuess.padEnd(wordLength, ' ').split('')
+        : new Array(wordLength).fill(' ');
 
     const rowClasses = ['board__row'];
     if (isShaking) rowClasses.push('board__row--shake');
@@ -46,5 +48,9 @@ export function Board({ guesses, currentGuess, revealingRow, shakeRow, won }: Bo
     );
   });
 
-  return <div className="board">{rows}</div>;
+  return (
+    <div className="board" style={{ '--word-length': wordLength } as CSSProperties}>
+      {rows}
+    </div>
+  );
 }

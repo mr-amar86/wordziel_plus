@@ -5,19 +5,22 @@ import { Keyboard } from './components/Keyboard';
 import { Toast } from './components/Toast';
 import { LossChoice } from './components/LossChoice';
 import { HowToPlayModal } from './components/HowToPlayModal';
+import { ModeSelect } from './components/ModeSelect';
 import { useGame } from './game/useGame';
-import { loadTheme, saveTheme, type Theme } from './game/storage';
+import { loadLastMode, loadTheme, saveLastMode, saveTheme, type Theme } from './game/storage';
+import type { WordLength } from './game/types';
 import './App.css';
 
-function App() {
-  const [theme, setTheme] = useState<Theme>(() => loadTheme());
-  const [showHelp, setShowHelp] = useState(false);
-  const game = useGame();
+interface GameScreenProps {
+  wordLength: WordLength;
+  theme: Theme;
+  onToggleTheme: () => void;
+  onChangeMode: () => void;
+}
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    saveTheme(theme);
-  }, [theme]);
+function GameScreen({ wordLength, theme, onToggleTheme, onChangeMode }: GameScreenProps) {
+  const [showHelp, setShowHelp] = useState(false);
+  const game = useGame(wordLength);
 
   const inputDisabled = game.status !== 'playing' || game.revealingRow !== null;
   const settled = game.status !== 'playing' && game.revealingRow === null;
@@ -28,14 +31,17 @@ function App() {
     <div className="app">
       <Header
         gameNumber={game.gameNumber}
+        wordLength={wordLength}
+        onChangeMode={onChangeMode}
         theme={theme}
-        onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+        onToggleTheme={onToggleTheme}
         onShowHelp={() => setShowHelp(true)}
       />
 
       <main className="main">
         <Toast message={game.message} />
         <Board
+          wordLength={wordLength}
           guesses={game.guesses}
           currentGuess={game.currentGuess}
           revealingRow={game.revealingRow}
@@ -59,8 +65,46 @@ function App() {
         />
       </main>
 
-      {showHelp ? <HowToPlayModal onClose={() => setShowHelp(false)} /> : null}
+      {showHelp ? <HowToPlayModal wordLength={wordLength} onClose={() => setShowHelp(false)} /> : null}
     </div>
+  );
+}
+
+function App() {
+  const [theme, setTheme] = useState<Theme>(() => loadTheme());
+  const [mode, setMode] = useState<WordLength | null>(() => loadLastMode());
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    saveTheme(theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+
+  if (mode === null) {
+    return (
+      <div className="app">
+        <Header theme={theme} onToggleTheme={toggleTheme} />
+        <main className="main">
+          <ModeSelect
+            onSelect={(wordLength) => {
+              saveLastMode(wordLength);
+              setMode(wordLength);
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <GameScreen
+      key={mode}
+      wordLength={mode}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      onChangeMode={() => setMode(null)}
+    />
   );
 }
 

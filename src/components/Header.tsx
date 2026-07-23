@@ -1,21 +1,34 @@
 interface HeaderProps {
-  gameNumber: number;
+  gameNumber?: number;
+  wordLength?: number;
+  onChangeMode?: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
-  onShowHelp: () => void;
+  onShowHelp?: () => void;
 }
 
-export function Header({ gameNumber, theme, onToggleTheme, onShowHelp }: HeaderProps) {
+export function Header({ gameNumber, wordLength, onChangeMode, theme, onToggleTheme, onShowHelp }: HeaderProps) {
   return (
     <header className="header">
       <div className="header__side header__side--left">
-        <button type="button" className="icon-button" aria-label="Jak grać" onClick={onShowHelp}>
-          <HelpIcon />
-        </button>
+        {onShowHelp ? (
+          <button type="button" className="icon-button" aria-label="Jak grać" onClick={onShowHelp}>
+            <HelpIcon />
+          </button>
+        ) : null}
       </div>
       <div className="header__title">
         <h1>Wordziel Plus</h1>
-        <p className="header__subtitle">Gra nr {gameNumber}</p>
+        {gameNumber !== undefined ? (
+          <p className="header__subtitle">
+            Gra nr {gameNumber} · {wordLength} liter
+            {onChangeMode ? (
+              <button type="button" className="header__mode-switch" onClick={onChangeMode}>
+                Zmień
+              </button>
+            ) : null}
+          </p>
+        ) : null}
       </div>
       <div className="header__side header__side--right">
         <button

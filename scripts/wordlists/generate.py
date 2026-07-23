@@ -1,5 +1,7 @@
 """
-Regenerates src/data/answers.json and src/data/validGuesses.json.
+Regenerates the per-word-length files in src/data/: answers.json /
+validGuesses.json (5-letter) and answers6.json / validGuesses6.json
+(6-letter).
 
 Pipeline
 --------
@@ -15,18 +17,20 @@ Pipeline
    script drives its parsed affix tables one level deep (plus one
    prefix+suffix crossproduct combination). Deep suffix-chaining is not
    attempted; this trades a small amount of completeness for simplicity
-   and is fine for a "does this look like a word" guess check.
-3. Filter to 5-letter words, keep only entries whose original dictionary
-   casing starts lowercase (drops proper nouns and all-caps
-   abbreviations, which the source dictionary includes for
-   spellchecking purposes), and uppercase the result. This becomes
-   validGuesses.json -- the large permissive "is this a real word" list.
+   and is fine for a "does this look like a word" guess check. This step
+   is run once for the whole dictionary regardless of word length.
+3. For each configured word length, filter step 2's forms to that length,
+   keep only entries whose original dictionary casing starts lowercase
+   (drops proper nouns and all-caps abbreviations, which the source
+   dictionary includes for spellchecking purposes), and uppercase the
+   result. This becomes validGuesses(6).json -- the large permissive "is
+   this a real word" list.
 4. Download the Polish word-frequency list from hermitdave/FrequencyWords
    (OpenSubtitles-derived, CC-BY-SA-4.0), intersect its most common
-   5-letter tokens with the dictionary-validated set from step 3, drop
-   anything matching a small profanity-root blocklist, and take the top
-   ANSWERS_SIZE words by frequency. This becomes answers.json -- the
-   curated pool the game's random target is drawn from.
+   tokens of that length with the dictionary-validated set from step 3,
+   drop anything matching a small profanity-root blocklist, and take the
+   top ANSWERS_SIZE words by frequency. This becomes answers(6).json --
+   the curated pool the game's random target is drawn from.
 
 Run from the repo root:
     pip install -r scripts/wordlists/requirements.txt
@@ -52,7 +56,7 @@ DIC_URL = 'https://raw.githubusercontent.com/LibreOffice/dictionaries/master/pl_
 AFF_URL = 'https://raw.githubusercontent.com/LibreOffice/dictionaries/master/pl_PL/pl_PL.aff'
 FREQ_URL = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/pl/pl_full.txt'
 
-WORD_LENGTH = 5
+WORD_LENGTHS = [5, 6]
 ANSWERS_SIZE = 3000
 
 PL_LOWER = 'aąbcćdeęfghijklłmnńoóprsśtuwyzźż'
@@ -120,7 +124,7 @@ def forms_for_word(word, aff):
     return results
 
 
-def build_valid_guesses() -> list[str]:
+def build_all_forms() -> set[str]:
     dic_path = download(DIC_URL, CACHE / 'pl_PL.dic')
     aff_path = download(AFF_URL, CACHE / 'pl_PL.aff')
     dictionary = Dictionary.from_files(str(CACHE / 'pl_PL'))
@@ -132,14 +136,17 @@ def build_valid_guesses() -> list[str]:
         all_forms.update(forms_for_word(word, dictionary.aff))
         if i % 50000 == 0:
             print(f'unmunch {i}/{len(words)}', file=sys.stderr)
+    return all_forms
 
-    five_letter_common = {
-        w.upper() for w in all_forms if len(w) == WORD_LENGTH and LOWERCASE_ONLY.match(w)
+
+def build_valid_guesses(all_forms: set[str], word_length: int) -> list[str]:
+    common = {
+        w.upper() for w in all_forms if len(w) == word_length and LOWERCASE_ONLY.match(w)
     }
-    return sorted(five_letter_common)
+    return sorted(common)
 
 
-def build_answers(valid_guesses: list[str]) -> list[str]:
+def build_answers(word_length: int, valid_guesses: list[str]) -> list[str]:
     freq_path = download(FREQ_URL, CACHE / 'pl_full.txt')
     valid_set = set(valid_guesses)
 
@@ -151,7 +158,7 @@ def build_answers(valid_guesses: list[str]) -> list[str]:
             if len(parts) != 2:
                 continue
             w = parts[0].strip()
-            if len(w) != WORD_LENGTH or not LOWERCASE_ONLY.match(w):
+            if len(w) != word_length or not LOWERCASE_ONLY.match(w):
                 continue
             W = w.upper()
             if W in seen or W not in valid_set:
@@ -164,20 +171,29 @@ def build_answers(valid_guesses: list[str]) -> list[str]:
     return sorted(ranked[:ANSWERS_SIZE])
 
 
-def main():
-    valid_guesses = build_valid_guesses()
-    print(f'validGuesses: {len(valid_guesses)} words', file=sys.stderr)
+def filenames(word_length: int) -> tuple[str, str]:
+    suffix = '' if word_length == 5 else str(word_length)
+    return f'answers{suffix}.json', f'validGuesses{suffix}.json'
 
-    answers = build_answers(valid_guesses)
-    print(f'answers: {len(answers)} words', file=sys.stderr)
+
+def main():
+    all_forms = build_all_forms()
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    (DATA_DIR / 'validGuesses.json').write_text(
-        json.dumps(valid_guesses, ensure_ascii=False), encoding='utf-8'
-    )
-    (DATA_DIR / 'answers.json').write_text(
-        json.dumps(answers, ensure_ascii=False), encoding='utf-8'
-    )
+    for word_length in WORD_LENGTHS:
+        valid_guesses = build_valid_guesses(all_forms, word_length)
+        print(f'[{word_length}] validGuesses: {len(valid_guesses)} words', file=sys.stderr)
+
+        answers = build_answers(word_length, valid_guesses)
+        print(f'[{word_length}] answers: {len(answers)} words', file=sys.stderr)
+
+        answers_name, valid_guesses_name = filenames(word_length)
+        (DATA_DIR / valid_guesses_name).write_text(
+            json.dumps(valid_guesses, ensure_ascii=False), encoding='utf-8'
+        )
+        (DATA_DIR / answers_name).write_text(
+            json.dumps(answers, ensure_ascii=False), encoding='utf-8'
+        )
 
 
 if __name__ == '__main__':
