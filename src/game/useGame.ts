@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { evaluateGuess, mergeKeyboardState } from './evaluate';
 import { isValidWord, pickRandomAnswer, RECENT_HISTORY_SIZE } from './words';
 import { loadRecentAnswers, nextGameNumber, pushRecentAnswer } from './storage';
+import { getGameMode } from './modes';
+import type { GameModeId } from './modes';
 import { MAX_GUESSES } from './types';
-import type { GameStatus, GuessRow, LetterState, WordLength } from './types';
+import type { GameStatus, GuessRow, LetterState } from './types';
 
 const REVEAL_STEP_MS = 300;
 const MESSAGE_TIMEOUT_MS = 1500;
@@ -12,7 +14,9 @@ function normalize(letter: string): string {
   return letter.toUpperCase();
 }
 
-export function useGame(wordLength: WordLength) {
+export function useGame(modeId: GameModeId) {
+  const { wordLength } = getGameMode(modeId);
+
   // nextGameNumber() mutates localStorage, so it can't live in a useState
   // initializer: React StrictMode's dev-only double-render would invoke it
   // twice and burn a game number. A ref guard makes the increment run
@@ -20,8 +24,8 @@ export function useGame(wordLength: WordLength) {
   const initial = useRef<{ answer: string; gameNumber: number } | null>(null);
   if (initial.current === null) {
     initial.current = {
-      answer: pickRandomAnswer(loadRecentAnswers(wordLength), wordLength),
-      gameNumber: nextGameNumber(wordLength),
+      answer: pickRandomAnswer(loadRecentAnswers(modeId), wordLength),
+      gameNumber: nextGameNumber(modeId),
     };
   }
   const [answer, setAnswer] = useState<string>(initial.current.answer);
@@ -32,7 +36,6 @@ export function useGame(wordLength: WordLength) {
   const [message, setMessage] = useState<string | null>(null);
   const [revealingRow, setRevealingRow] = useState<number | null>(null);
   const [shakeRow, setShakeRow] = useState<number | null>(null);
-  const [answerRevealed, setAnswerRevealed] = useState(false);
   const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const keyboardState = useMemo(() => {
@@ -52,23 +55,22 @@ export function useGame(wordLength: WordLength) {
   }, []);
 
   const startNewGame = useCallback(() => {
-    const recent = pushRecentAnswer(answer, RECENT_HISTORY_SIZE, wordLength);
+    const recent = pushRecentAnswer(answer, RECENT_HISTORY_SIZE, modeId);
     setAnswer(pickRandomAnswer(recent, wordLength));
-    setGameNumber(nextGameNumber(wordLength));
+    setGameNumber(nextGameNumber(modeId));
     setGuesses([]);
     setCurrentGuess('');
     setStatus('playing');
     setMessage(null);
     setRevealingRow(null);
     setShakeRow(null);
-    setAnswerRevealed(false);
     // startNewGame intentionally omits `answer` from deps below; it reads
     // the current answer once per call to record it as "just played".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answer, wordLength]);
+  }, [answer, modeId, wordLength]);
 
-  // Same word, fresh 6 guesses: used when the player declines to see the
-  // answer after a loss and wants another attempt instead.
+  // Same word, fresh 6 guesses: used when the player wants another attempt
+  // at the word they just failed, from the lose overlay.
   const retrySameWord = useCallback(() => {
     setGuesses([]);
     setCurrentGuess('');
@@ -76,13 +78,7 @@ export function useGame(wordLength: WordLength) {
     setMessage(null);
     setRevealingRow(null);
     setShakeRow(null);
-    setAnswerRevealed(false);
   }, []);
-
-  const revealAnswer = useCallback(() => {
-    setAnswerRevealed(true);
-    showMessage(answer, 0);
-  }, [answer, showMessage]);
 
   const addLetter = useCallback(
     (letter: string) => {
@@ -123,7 +119,6 @@ export function useGame(wordLength: WordLength) {
       setRevealingRow(null);
       if (currentGuess === answer) {
         setStatus('won');
-        showMessage(['Rewelacja!', 'Wspaniale!', 'Super!', 'Nieźle!', 'Udało się!', 'Ledwo, ledwo'][rowIndex] ?? 'Wygrana!', 0);
       } else if (rowIndex + 1 >= MAX_GUESSES) {
         setStatus('lost');
       }
@@ -155,13 +150,11 @@ export function useGame(wordLength: WordLength) {
     message,
     revealingRow,
     shakeRow,
-    answerRevealed,
     keyboardState,
     addLetter,
     removeLetter,
     submitGuess,
     startNewGame,
     retrySameWord,
-    revealAnswer,
   };
 }

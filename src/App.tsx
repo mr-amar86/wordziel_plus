@@ -1,40 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { Board } from './components/Board';
 import { Keyboard } from './components/Keyboard';
 import { Toast } from './components/Toast';
-import { LossChoice } from './components/LossChoice';
+import { GameEndOverlay } from './components/GameEndOverlay';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { ModeSelect } from './components/ModeSelect';
 import { useGame } from './game/useGame';
-import { loadLastMode, loadTheme, saveLastMode, saveTheme, type Theme } from './game/storage';
-import type { WordLength } from './game/types';
+import { loadLastMode, saveLastMode } from './game/storage';
+import { getGameMode } from './game/modes';
+import type { GameModeId } from './game/modes';
 import './App.css';
 
 interface GameScreenProps {
-  wordLength: WordLength;
-  theme: Theme;
-  onToggleTheme: () => void;
+  modeId: GameModeId;
   onChangeMode: () => void;
 }
 
-function GameScreen({ wordLength, theme, onToggleTheme, onChangeMode }: GameScreenProps) {
+function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
   const [showHelp, setShowHelp] = useState(false);
-  const game = useGame(wordLength);
+  const game = useGame(modeId);
+  const { wordLength, title } = getGameMode(modeId);
 
   const inputDisabled = game.status !== 'playing' || game.revealingRow !== null;
   const settled = game.status !== 'playing' && game.revealingRow === null;
-  const awaitingLossChoice = settled && game.status === 'lost' && !game.answerRevealed;
-  const showNewGameButton = settled && !awaitingLossChoice;
 
   return (
     <div className="app">
       <Header
         gameNumber={game.gameNumber}
-        wordLength={wordLength}
+        modeTitle={title}
         onChangeMode={onChangeMode}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
         onShowHelp={() => setShowHelp(true)}
       />
 
@@ -48,14 +44,6 @@ function GameScreen({ wordLength, theme, onToggleTheme, onChangeMode }: GameScre
           shakeRow={game.shakeRow}
           won={game.status === 'won'}
         />
-        {awaitingLossChoice ? (
-          <LossChoice onRetry={game.retrySameWord} onReveal={game.revealAnswer} />
-        ) : null}
-        {showNewGameButton ? (
-          <button type="button" className="new-game-button" onClick={game.startNewGame}>
-            Nowa gra
-          </button>
-        ) : null}
         <Keyboard
           keyboardState={game.keyboardState}
           onKey={game.addLetter}
@@ -66,46 +54,35 @@ function GameScreen({ wordLength, theme, onToggleTheme, onChangeMode }: GameScre
       </main>
 
       {showHelp ? <HowToPlayModal wordLength={wordLength} onClose={() => setShowHelp(false)} /> : null}
+
+      {settled ? (
+        <GameEndOverlay
+          status={game.status === 'won' ? 'won' : 'lost'}
+          word={game.answer}
+          guessCount={game.guesses.length}
+          onPlayAgain={game.status === 'won' ? game.startNewGame : game.retrySameWord}
+          onChangeMode={onChangeMode}
+        />
+      ) : null}
     </div>
   );
 }
 
 function App() {
-  const [theme, setTheme] = useState<Theme>(() => loadTheme());
-  const [mode, setMode] = useState<WordLength | null>(() => loadLastMode());
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    saveTheme(theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  const [mode, setMode] = useState<GameModeId | null>(() => loadLastMode());
 
   if (mode === null) {
     return (
-      <div className="app">
-        <Header theme={theme} onToggleTheme={toggleTheme} />
-        <main className="main">
-          <ModeSelect
-            onSelect={(wordLength) => {
-              saveLastMode(wordLength);
-              setMode(wordLength);
-            }}
-          />
-        </main>
-      </div>
+      <ModeSelect
+        onSelect={(modeId) => {
+          saveLastMode(modeId);
+          setMode(modeId);
+        }}
+      />
     );
   }
 
-  return (
-    <GameScreen
-      key={mode}
-      wordLength={mode}
-      theme={theme}
-      onToggleTheme={toggleTheme}
-      onChangeMode={() => setMode(null)}
-    />
-  );
+  return <GameScreen key={mode} modeId={mode} onChangeMode={() => setMode(null)} />;
 }
 
 export default App;

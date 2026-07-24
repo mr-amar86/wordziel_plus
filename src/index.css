@@ -1,30 +1,40 @@
-:root,
-:root[data-theme='dark'] {
-  --bg: #121213;
-  --fg: #ffffff;
-  --fg-muted: #9a9a9c;
-  --tile-empty-border: #3a3a3c;
-  --tile-filled-border: #6b6b6d;
-  --key-bg: #818384;
-  --key-fg: #ffffff;
-  --overlay: rgba(0, 0, 0, 0.6);
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-accent-100: #f5f4ff;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-neutral-100: #f4f5f7;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+
+  /* Legacy names used throughout App.css, remapped onto the tokens above. */
+  --bg: var(--color-bg);
+  --fg: var(--color-text);
+  --fg-muted: color-mix(in srgb, var(--color-text) 60%, transparent);
+  --tile-empty-border: var(--color-neutral-800);
+  --tile-filled-border: var(--color-accent);
+  --key-bg: var(--color-neutral-800);
+  --key-fg: var(--color-text);
+  --overlay: color-mix(in srgb, var(--color-bg) 75%, transparent);
+  /* Wordle feedback colors are semantic gameplay signal, not decoration --
+     left as-is rather than remapped onto the accent/neutral palette. */
   --correct: #b87a1d;
   --present: #6a9ed4;
   --absent: #3a3a3c;
-}
-
-:root[data-theme='light'] {
-  --bg: #ffffff;
-  --fg: #1a1a1b;
-  --fg-muted: #6b6b6d;
-  --tile-empty-border: #d3d6da;
-  --tile-filled-border: #878a8c;
-  --key-bg: #d3d6da;
-  --key-fg: #1a1a1b;
-  --overlay: rgba(0, 0, 0, 0.3);
-  --correct: #b87a1d;
-  --present: #6a9ed4;
-  --absent: #787c7f;
 }
 
 * {
@@ -39,12 +49,22 @@ body {
 }
 
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
 }
 
 button {
   font-family: inherit;
+}
+
+h1,
+h2 {
+  font-weight: 500;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }

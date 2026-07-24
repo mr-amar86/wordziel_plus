@@ -11,10 +11,11 @@ client-side. Deploys as static files (Firebase Hosting on GCP).
 
 Differences from the original Wordle: no daily-word limit (every "new
 game" click picks a fresh random word, avoiding immediate repeats via a
-recent-answers history), a choice of 5-letter or 6-letter word length
-picked on landing, and "present" letters are light blue instead of
-yellow. 6 guesses and the exact Wordle duplicate-letter coloring rule are
-otherwise preserved.
+recent-answers history), a choice of three game modes picked on landing
+(5-letter "Klasyczny", 5-letter "Archaizmy", 6-letter "Rozszerzony"), a
+single dark theme (no light mode), and "present" letters are light blue
+instead of yellow. 6 guesses and the exact Wordle duplicate-letter
+coloring rule are otherwise preserved.
 
 ## Commands
 
@@ -77,6 +78,14 @@ additionally filtered by word frequency and a profanity blocklist
 (applied only to the answer pool — profanity remains a *valid guess*,
 exactly like real Wordle).
 
+Word *length* (`WordLength`) and game *mode* (`GameModeId`) are separate
+axes — see `src/game/modes.ts`. The "Archaizmy" mode currently points at
+the same `wordLength: 5` as "Klasyczny", so it draws from the same
+`answers.json`/`validGuesses.json` pair; it's a placeholder until a
+genuinely rare/archaic word list is curated, kept as a distinct mode
+(own recent-answers history, own game counter) so that curation can
+happen later without touching UI code.
+
 ### Game logic lives in `src/game/`, isolated from UI on purpose
 
 - `evaluate.ts` — `evaluateGuess()` is the two-pass Wordle coloring
@@ -91,37 +100,59 @@ exactly like real Wordle).
   becomes a public shared-word mode, word selection can move server-side
   (Cloud Function) without touching any component — that's the seam
   where answer-peeking prevention would be added later.
-- `useGame.ts` — `useGame(wordLength)`, the single hook holding all game
+- `useGame.ts` — `useGame(modeId)`, the single hook holding all game
   state (answer, guesses, current guess, status, keyboard state,
   reveal/shake animation timing, toast message) and the physical-keyboard
-  `keydown` listener. `wordLength` is fixed for the hook's lifetime; a
-  mode switch remounts it (see below) rather than mutating it in place.
-  `App.tsx`'s `GameScreen` is mostly just wiring this hook's return value
-  to components.
-- `storage.ts` — the only `localStorage` access: theme, the last-played
-  `WordLength` (`loadLastMode`/`saveLastMode`), and, keyed per word
-  length, recent-answers history (repeat avoidance) and a cosmetic
-  per-browser game counter (`Gra nr N` in the header) — 5-letter and
-  6-letter each get their own counter and history since they're
-  effectively two separate games. Deliberately has no stats/outcome data
-  model — don't add one without being asked; it's out of scope for this
-  version by design.
+  `keydown` listener. It resolves `wordLength` from `modeId` via
+  `getGameMode()` once at the top; `modeId` is fixed for the hook's
+  lifetime, a mode switch remounts it (see below) rather than mutating it
+  in place. `App.tsx`'s `GameScreen` is mostly just wiring this hook's
+  return value to components.
+- `modes.ts` — the `GameModeId` (`'classic' | 'archaic' | 'extended'`)
+  registry: `GAME_MODES` is the ordered list `ModeSelect` renders as
+  cards, `getGameMode(id)` resolves a mode's `wordLength`/title/
+  description. This is the single source of truth for what modes exist —
+  adding a fourth mode is adding an entry here, not touching `ModeSelect.tsx`.
+- `storage.ts` — the only `localStorage` access: the last-played
+  `GameModeId` (`loadLastMode`/`saveLastMode`), and, keyed per mode,
+  recent-answers history (repeat avoidance) and a cosmetic per-browser
+  game counter (`Gra nr N` in the header) — each mode gets its own
+  counter and history since they're effectively separate games (this is
+  also why Klasyczny/Archaizmy stay distinct even while sharing a word
+  pool). Deliberately has no stats/outcome data model — don't add one
+  without being asked; it's out of scope for this version by design.
 
-### Post-loss flow is a three-state branch, not just win/lose
+### Game end is a full-screen overlay, answer always shown immediately on loss
 
-On a loss, `useGame` does **not** auto-reveal the answer. `status`
-becomes `'lost'` but `answerRevealed` stays `false`, and `App.tsx` renders
-`LossChoice` (retry vs. reveal) instead of the `Nowa gra` button:
+`GameEndOverlay` (`src/components/GameEndOverlay.tsx`) renders whenever
+`GameScreen`'s `settled` is true (`status !== 'playing' && revealingRow
+=== null`), for both `'won'` and `'lost'`. There is no intermediate
+"reveal or not" choice anymore — on loss the answer is shown in the
+overlay's meta line unconditionally, via `game.answer`. (An earlier
+version hid the answer behind a `LossChoice` retry-vs-reveal prompt with
+an `answerRevealed` gate; that's gone — don't reintroduce it without
+being asked.)
 
-- **Retry** (`retrySameWord()`) resets guesses/keyboard but keeps the same
-  `answer` and does not touch `gameNumber` or the recent-answers history
-  — it's a re-attempt of the same puzzle, not a new game.
-- **Reveal** (`revealAnswer()`) sets `answerRevealed = true` and shows the
-  answer via the toast; only then does the `Nowa gra` button appear.
-
-`App.tsx`'s `awaitingLossChoice` / `showNewGameButton` booleans encode
-exactly this branch — check both before assuming "game over" means one
-thing.
+- `onPlayAgain` is `startNewGame` when `status === 'won'` (new random
+  word, same mode) and `retrySameWord` when `'lost'` (same word, fresh
+  guesses — this is why `retrySameWord` is still worth keeping distinct
+  from `startNewGame` even though the reveal gate is gone: "Spróbuj
+  ponownie" on a loss re-attempts the word you just saw, it doesn't
+  reroll).
+- `onChangeMode` is the same callback the header's "Zmień" link uses —
+  both abandon the current game state and return to `ModeSelect`.
+- The win/lose tile row in the overlay is a standalone rendering of
+  `word`, not `Board`/`Tile` reused — it doesn't need the flip-reveal
+  choreography those components carry, just a static styled row. Sizing
+  mirrors `Board.tsx`'s `--word-length` CSS-custom-property trick
+  (`grid-template-columns: repeat(var(--word-length), minmax(0, 46px))`)
+  so it degrades gracefully for 6-letter mode instead of overflowing the
+  340px card.
+- The win toast flavor messages (`'Rewelacja!'`, etc.) that used to fire
+  from `submitGuess` on a win are gone — the overlay's title is now the
+  only win messaging. `Toast`/`message` state still exists for the
+  in-progress-guess validation messages ("Za mało liter", etc.), which
+  are unrelated and unaffected.
 
 ### React StrictMode gotcha in `useGame.ts`
 
@@ -144,44 +175,66 @@ constants must stay in sync if either changes. Because the multiplier is
 now the per-game `wordLength` instead of a fixed constant, 6-letter games
 have a proportionally longer reveal before the win/loss state lands.
 
-### Theme handling is duplicated by necessity
+### Design tokens live in `index.css`, dark-only
 
-Theme (`dark`/`light`) is persisted to `localStorage` under
-`wordzielplus:theme`. It's read and applied to `<html data-theme>` twice:
-once synchronously in an inline `<script>` in `index.html` (to avoid a
-flash of the wrong theme before React mounts), and again in `App.tsx`'s
-`useEffect` (to react to the in-app toggle and persist changes). CSS
-variables are keyed off `[data-theme='dark' | 'light']` in `index.css`,
-not `prefers-color-scheme` — the app always defaults to dark regardless
-of OS theme, per product decision.
+`:root` in `src/index.css` defines the token set (`--color-bg`,
+`--color-surface`, `--color-text`, `--color-accent` + its `100`–`800`
+scale, `--color-neutral-100/800/900`, `--color-divider`, `--radius-sm/md/lg`,
+`--shadow-sm/md/lg`) plus a block of legacy names (`--bg`, `--fg`,
+`--fg-muted`, `--tile-empty-border`, `--tile-filled-border`, `--key-bg`,
+`--key-fg`, `--overlay`) that are just aliases onto the tokens above —
+`App.css` still reads the legacy names throughout, so re-theming happens
+by editing the token values in one place, not by touching `App.css`.
+There is no light theme and no toggle; a previous version had both
+(`data-theme` attribute, `useEffect`-driven persistence) — don't
+reintroduce that pattern without being asked.
 
-### Word length is selectable (5 or 6), threaded as a prop — not global state
+Two exceptions deliberately aren't remapped onto the token palette:
 
-`WordLength` (`src/game/types.ts`) is `5 | 6`; `MAX_GUESSES` stays a fixed
-constant (6 guesses regardless of mode). There is deliberately no global
-"current word length" — it's a plain prop threaded from `App.tsx` down,
-because `useGame(wordLength)` calls `useState`/`useRef` internally and
-can't be called conditionally, so word length can't just be a piece of
-state read inside one always-mounted hook.
+- `--correct` / `--present` / `--absent` (tile and keyboard feedback
+  colors) are semantic gameplay signal, not decoration. Restyling passes
+  should leave them alone.
+- Buttons are outlined, never solid-filled: transparent background, 1px
+  `var(--color-accent)` border, `var(--color-accent)` text, and
+  `color-mix(in srgb, var(--color-accent) 12%, transparent)` on hover
+  (`.game-end-overlay__button--primary`, `.icon-button`). The
+  in-game keyboard (`.key`) and tile coloring are exempt from this rule —
+  they're game pieces signaling state, not general UI buttons.
 
-- `App.tsx` holds `mode: WordLength | null` (`null` = show the picker).
+Inter is loaded from Google Fonts in `index.html` at weights 400/500/700:
+400 body text, 500 headings and button/link labels (`h1`, `h2` are 500
+globally via `index.css`), 700 reserved for tile letters and keyboard
+keys where true bold legibility matters — don't add 500-weight-only text
+that ends up relying on 700 without also widening that font request.
+
+### Game mode is selectable, threaded as a prop — not global state
+
+`GameModeId` (`src/game/modes.ts`) is `'classic' | 'archaic' | 'extended'`;
+each resolves to a `WordLength` via `getGameMode()`. `MAX_GUESSES` stays a
+fixed constant (6 guesses regardless of mode). There is deliberately no
+global "current mode" — it's a plain prop threaded from `App.tsx` down,
+because `useGame(modeId)` calls `useState`/`useRef` internally and can't
+be called conditionally, so mode can't just be a piece of state read
+inside one always-mounted hook.
+
+- `App.tsx` holds `mode: GameModeId | null` (`null` = show the picker).
   It reads `loadLastMode()` on mount, so a returning player skips straight
   to their last mode; `null` only happens on a genuinely first visit or
   after explicitly switching modes.
-- When `mode` is `null`, `App` renders `Header` (no game number, no help
-  icon) + `ModeSelect` (the "5 liter" / "6 liter" landing buttons).
-  Otherwise it renders `<GameScreen key={mode} wordLength={mode} .../>` —
-  the `key` guarantees a full remount (fresh `useGame` call, fresh
+- When `mode` is `null`, `App` renders `ModeSelect` full-page, standalone
+  (no shared `Header` — the picker screen owns its own title/subtitle
+  per the design). Otherwise it renders `<GameScreen key={mode} modeId={mode} .../>`
+  — the `key` guarantees a full remount (fresh `useGame` call, fresh
   `initial` ref-guard) on every mode change, which is what makes the
   React-StrictMode-safe pattern above still correct here.
 - `GameScreen` (defined in `App.tsx`, not split into its own file) is what
-  the old flat `App.tsx` used to be: it calls `useGame(wordLength)` and
-  wires the result to `Board`/`Keyboard`/etc. `wordLength` also passes
-  straight through to `Board` (grid sizing) and `HowToPlayModal` (intro
-  text — the three example tile rows stay fixed at 5 tiles regardless of
-  mode; they're just an illustration of the coloring rule, not a live
-  board).
-- The header's "Zmień" link next to `Gra nr N · {wordLength} liter` calls
+  the old flat `App.tsx` used to be: it calls `useGame(modeId)` and wires
+  the result to `Board`/`Keyboard`/etc., resolving `wordLength`/`title`
+  from `getGameMode(modeId)` for `Board` (grid sizing), `Header` (subtitle)
+  and `HowToPlayModal` (intro text — the three example tile rows stay
+  fixed at 5 tiles regardless of mode; they're just an illustration of
+  the coloring rule, not a live board).
+- The header's "Zmień" link next to `Gra nr N · {modeTitle}` calls
   `onChangeMode`, which sets `mode` back to `null` — this abandons the
   in-progress game with no confirmation prompt, by design.
 - `Board.tsx` sets `--word-length` as an inline CSS custom property; `App.css`'s
