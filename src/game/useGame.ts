@@ -68,19 +68,48 @@ export function useGame(modeId: GameModeId) {
   // as their last one, and only while the game is still undecided.
   const isLastAttempt = status === 'playing' && revealingRow === null && guesses.length === maxGuesses - 1;
 
-  // Revealing a hint when only one letter is still unknown would fully
-  // give away the answer (every other letter is already placed or
-  // located), so the hint is withheld entirely in that case.
+  // How many board positions are already pinned down by a `correct`
+  // guess -- counted per *position*, not per distinct letter, so a
+  // repeated letter (e.g. the two O's in ŁOMOT) contributes one slot for
+  // each occurrence it's been placed at, not just one for the letter.
+  const correctPositionsCount = useMemo(() => {
+    const positions = new Set<number>();
+    for (const row of guesses) {
+      row.forEach(({ state }, index) => {
+        if (state === 'correct') positions.add(index);
+      });
+    }
+    return positions.size;
+  }, [guesses]);
+
+  // Distinct letters known to be in the word but not yet placed.
+  const presentLettersCount = useMemo(
+    () => Object.values(keyboardState).filter((state) => state === 'present').length,
+    [keyboardState],
+  );
+
+  // Revealing a hint should only be blocked when it would leave the
+  // player with no real ambiguity left. Comparing unknownLetters.length
+  // to a flat threshold overcounts how "solved" a word is once it has a
+  // repeated letter: e.g. for ŁOMOT (distinct letters Ł, O, M, T) with O
+  // placed and T/M known-but-unplaced, only Ł is a genuinely new distinct
+  // letter -- but the player still doesn't know that O repeats, so
+  // learning Ł wouldn't hand them the arrangement. What actually matters
+  // is how many board slots aren't yet accounted for by *any* identified
+  // letter (correct-placed or present-but-unplaced): if 2+ remain
+  // unaccounted for, there's still real uncertainty even after the hint.
+  const remainingUnknownSlots = wordLength - correctPositionsCount - presentLettersCount;
+
   const hintVariant = useMemo<HintVariant | null>(() => {
     if (!isLastAttempt) return null;
-    if (unknownLetters.length <= 1) return 'unavailable';
+    if (unknownLetters.length === 0 || remainingUnknownSlots <= 1) return 'unavailable';
     if (hintChoice === 'declined') return null;
     if (hintChoice === 'accepted') return 'revealed';
     return 'offer';
-  }, [isLastAttempt, unknownLetters.length, hintChoice]);
+  }, [isLastAttempt, unknownLetters.length, remainingUnknownSlots, hintChoice]);
 
   const acceptHint = useCallback(() => {
-    if (hintChoice !== 'pending' || unknownLetters.length < 2) return;
+    if (hintChoice !== 'pending' || unknownLetters.length === 0) return;
     const letter = unknownLetters[Math.floor(Math.random() * unknownLetters.length)];
     setHintLetter(letter);
     setHintChoice('accepted');

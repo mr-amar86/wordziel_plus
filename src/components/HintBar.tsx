@@ -19,9 +19,9 @@ export function HintBar({ variant, hintLetter, onAccept, onDecline }: HintBarPro
   if (variant === 'revealed') {
     return (
       <div className="hint-bar hint-bar--revealed">
-        <span className="hint-bar__label">Podpowiedź</span>
         <span className="hint-bar__text">
-          Litera <strong className="hint-bar__letter">{hintLetter}</strong> występuje w słowie
+          <span className="hint-bar__label">Podpowiedź:</span> Litera{' '}
+          <strong className="hint-bar__letter">{hintLetter}</strong> występuje w słowie
         </span>
       </div>
     );

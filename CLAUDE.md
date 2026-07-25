@@ -305,14 +305,31 @@ score is `present` — see `mergeKeyboardState`'s never-downgrade rule.
 
 `hintVariant` (`'offer' | 'revealed' | 'unavailable' | null`, exported
 as the `HintVariant` type) derives from that: `null` outside the last
-attempt or once declined; `'unavailable'` when `unknownLetters.length <=
-1` (revealing anything would fully give away the answer — the hint is
-withheld, not just hidden); otherwise `'offer'` until `acceptHint()`
-picks a random letter from `unknownLetters` into `hintLetter` and flips
-to `'revealed'`. `hintChoice` (`'pending' | 'accepted' | 'declined'`)
-is the only state driving this and resets in both `startNewGame` and
+attempt or once declined; otherwise `'offer'` until `acceptHint()` picks
+a random letter from `unknownLetters` into `hintLetter` and flips to
+`'revealed'`. `hintChoice` (`'pending' | 'accepted' | 'declined'`) is
+the only state driving this and resets in both `startNewGame` and
 `retrySameWord`, since Trudny/last-word retries are a fresh "last
 attempt" in their own right.
+
+The `'unavailable'` case is *not* just `unknownLetters.length <= 1` —
+that undercounts how much is still genuinely unknown once the answer has
+a repeated letter. For "ŁOMOT" (distinct letters Ł/O/M/T), once O is
+placed and T/M are known-but-unplaced, only Ł is a new *distinct*
+letter — but the player has no way to know O repeats, so learning Ł
+wouldn't hand them the arrangement. What actually has to be near-zero is
+`remainingUnknownSlots = wordLength - correctPositionsCount -
+presentLettersCount`: board positions not yet accounted for by any
+identified letter, where `correctPositionsCount` counts *positions*
+(so a letter placed correct twice contributes two slots, not one) and
+`presentLettersCount` counts distinct known-but-unplaced letters. The
+hint is withheld only when `unknownLetters.length === 0` (nothing left
+to reveal) or `remainingUnknownSlots <= 1` (at most one board position
+still has no explanation, i.e. revealing the last letter would leave
+essentially no ambiguity). `acceptHint()`'s own guard mirrors this: it
+only requires `unknownLetters.length !== 0`, not `>= 2`, since a hint can
+be valid with exactly one remaining distinct letter as long as
+`remainingUnknownSlots` says there's still real uncertainty.
 
 UI is `HintBar.tsx`, rendered in `App.tsx` between `Board` and
 `Keyboard` only when `hintVariant` isn't null — it doesn't know the game
