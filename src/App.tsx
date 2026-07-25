@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Header } from './components/Header';
 import { Board } from './components/Board';
+import { HintBar } from './components/HintBar';
 import { Keyboard } from './components/Keyboard';
 import { Toast } from './components/Toast';
 import { GameEndOverlay } from './components/GameEndOverlay';
@@ -45,8 +46,17 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
           shakeRow={game.shakeRow}
           won={game.status === 'won'}
         />
+        {game.hintVariant ? (
+          <HintBar
+            variant={game.hintVariant}
+            hintLetter={game.hintLetter}
+            onAccept={game.acceptHint}
+            onDecline={game.declineHint}
+          />
+        ) : null}
         <Keyboard
           keyboardState={game.keyboardState}
+          hintLetter={game.hintVariant === 'revealed' ? game.hintLetter : null}
           onKey={game.addLetter}
           onEnter={game.submitGuess}
           onBackspace={game.removeLetter}

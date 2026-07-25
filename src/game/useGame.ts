@@ -10,6 +10,8 @@ import type { GameStatus, GuessRow, LetterState } from './types';
 const REVEAL_STEP_MS = 300;
 const MESSAGE_TIMEOUT_MS = 1500;
 
+export type HintVariant = 'offer' | 'revealed' | 'unavailable';
+
 function normalize(letter: string): string {
   return letter.toUpperCase();
 }
@@ -39,6 +41,8 @@ export function useGame(modeId: GameModeId) {
   const [message, setMessage] = useState<string | null>(null);
   const [revealingRow, setRevealingRow] = useState<number | null>(null);
   const [shakeRow, setShakeRow] = useState<number | null>(null);
+  const [hintChoice, setHintChoice] = useState<'pending' | 'accepted' | 'declined'>('pending');
+  const [hintLetter, setHintLetter] = useState<string | null>(null);
   const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const keyboardState = useMemo(() => {
@@ -48,6 +52,43 @@ export function useGame(modeId: GameModeId) {
     }
     return state;
   }, [guesses]);
+
+  // Letters of the answer the player hasn't identified yet -- never
+  // guessed `correct` or `present` for that letter. A letter that's part
+  // of the answer always ends up `correct` or `present` in keyboardState
+  // the moment it's guessed at all (evaluateGuess never leaves a
+  // same-guess duplicate as the *only* record for a letter that's really
+  // in the answer), so "missing from keyboardState" is exactly "unknown".
+  const unknownLetters = useMemo(() => {
+    const distinct = Array.from(new Set(answer.split('')));
+    return distinct.filter((letter) => keyboardState[letter] !== 'correct' && keyboardState[letter] !== 'present');
+  }, [answer, keyboardState]);
+
+  // The hint only makes sense on the guess the player is about to submit
+  // as their last one, and only while the game is still undecided.
+  const isLastAttempt = status === 'playing' && revealingRow === null && guesses.length === maxGuesses - 1;
+
+  // Revealing a hint when only one letter is still unknown would fully
+  // give away the answer (every other letter is already placed or
+  // located), so the hint is withheld entirely in that case.
+  const hintVariant = useMemo<HintVariant | null>(() => {
+    if (!isLastAttempt) return null;
+    if (unknownLetters.length <= 1) return 'unavailable';
+    if (hintChoice === 'declined') return null;
+    if (hintChoice === 'accepted') return 'revealed';
+    return 'offer';
+  }, [isLastAttempt, unknownLetters.length, hintChoice]);
+
+  const acceptHint = useCallback(() => {
+    if (hintChoice !== 'pending' || unknownLetters.length < 2) return;
+    const letter = unknownLetters[Math.floor(Math.random() * unknownLetters.length)];
+    setHintLetter(letter);
+    setHintChoice('accepted');
+  }, [hintChoice, unknownLetters]);
+
+  const declineHint = useCallback(() => {
+    setHintChoice('declined');
+  }, []);
 
   const showMessage = useCallback((text: string, timeout = MESSAGE_TIMEOUT_MS) => {
     if (messageTimer.current) clearTimeout(messageTimer.current);
@@ -69,6 +110,8 @@ export function useGame(modeId: GameModeId) {
     setMessage(null);
     setRevealingRow(null);
     setShakeRow(null);
+    setHintChoice('pending');
+    setHintLetter(null);
     // startNewGame intentionally omits `answer` from deps below; it reads
     // the current answer once per call to record it as "just played".
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +126,8 @@ export function useGame(modeId: GameModeId) {
     setMessage(null);
     setRevealingRow(null);
     setShakeRow(null);
+    setHintChoice('pending');
+    setHintLetter(null);
   }, []);
 
   const addLetter = useCallback(
@@ -167,6 +212,10 @@ export function useGame(modeId: GameModeId) {
     revealingRow,
     shakeRow,
     keyboardState,
+    hintVariant,
+    hintLetter,
+    acceptHint,
+    declineHint,
     addLetter,
     removeLetter,
     submitGuess,

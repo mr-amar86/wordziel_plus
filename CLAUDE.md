@@ -290,3 +290,35 @@ path as "Za mało liter" / "Słowo nie znajduje się na liście" — it's not a
 new UI affordance, just a third rejection reason. If another mode ever
 wants this rule, flip its `hardMode` flag in `modes.ts`; the check itself
 doesn't hardcode `'hard'` anywhere.
+
+### Last-attempt hint, offered once, applies to every mode
+
+On the player's last guess row (`guesses.length === maxGuesses - 1`),
+while `status === 'playing'` and no reveal animation is running,
+`useGame.ts` computes `unknownLetters` — the answer's distinct letters
+that are neither `correct` nor `present` in `keyboardState`, i.e. never
+guessed at all. (A letter that's actually in the answer can never end up
+`absent` in `keyboardState`: `evaluateGuess`'s green pass always claims
+at least one occurrence first, so the worst a real answer-letter can
+score is `present` — see `mergeKeyboardState`'s never-downgrade rule.
+"Missing from `keyboardState`" is therefore an exact test for "unknown".)
+
+`hintVariant` (`'offer' | 'revealed' | 'unavailable' | null`, exported
+as the `HintVariant` type) derives from that: `null` outside the last
+attempt or once declined; `'unavailable'` when `unknownLetters.length <=
+1` (revealing anything would fully give away the answer — the hint is
+withheld, not just hidden); otherwise `'offer'` until `acceptHint()`
+picks a random letter from `unknownLetters` into `hintLetter` and flips
+to `'revealed'`. `hintChoice` (`'pending' | 'accepted' | 'declined'`)
+is the only state driving this and resets in both `startNewGame` and
+`retrySameWord`, since Trudny/last-word retries are a fresh "last
+attempt" in their own right.
+
+UI is `HintBar.tsx`, rendered in `App.tsx` between `Board` and
+`Keyboard` only when `hintVariant` isn't null — it doesn't know the game
+logic, just renders whichever of the three variants it's given.
+`hintLetter` is threaded into `Keyboard` too (only while `'revealed'`)
+so it can add a `key--hint` class to the matching key, independent of
+that key's normal `correct`/`present`/`absent` class. This hint applies
+uniformly to all four modes, including Trudny — nothing in `hardMode.ts`
+or `findHardModeViolation` treats a hinted letter specially.

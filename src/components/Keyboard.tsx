@@ -3,13 +3,14 @@ import type { LetterState } from '../game/types';
 
 interface KeyboardProps {
   keyboardState: Record<string, LetterState>;
+  hintLetter?: string | null;
   onKey: (key: string) => void;
   onEnter: () => void;
   onBackspace: () => void;
   disabled: boolean;
 }
 
-export function Keyboard({ keyboardState, onKey, onEnter, onBackspace, disabled }: KeyboardProps) {
+export function Keyboard({ keyboardState, hintLetter, onKey, onEnter, onBackspace, disabled }: KeyboardProps) {
   function handleClick(key: string) {
     if (disabled) return;
     if (key === 'ENTER') onEnter();
@@ -27,6 +28,7 @@ export function Keyboard({ keyboardState, onKey, onEnter, onBackspace, disabled 
             const classes = ['key'];
             if (isWide) classes.push('key--wide');
             if (state) classes.push(`key--${state}`);
+            if (hintLetter && key === hintLetter) classes.push('key--hint');
             return (
               <button
                 key={key}
