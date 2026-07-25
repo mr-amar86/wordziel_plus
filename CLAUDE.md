@@ -57,34 +57,55 @@ until pointed at a real project via `firebase use --add`. Deploy with
 
 ## Architecture
 
-### Two word lists per length, deliberately separate (`src/game/words.ts`)
+### Two word lists per mode, deliberately separate (`src/game/words.ts`)
 
-Each supported `WordLength` (`src/game/types.ts`, currently `5 | 6`) has
-its own pair of lists, indexed by length in `words.ts`'s `ANSWERS` /
-`VALID_GUESSES` records:
+Each `GameModeId` (`src/game/modes.ts`) has its own pair of lists, indexed
+by mode (not just word length) in `words.ts`'s `ANSWER_ENTRIES` /
+`VALID_GUESSES` records — this is what lets Archaizmy have a wholly
+different word pool from Klasyczny even though both are `wordLength: 5`:
 
-- `src/data/answers.json` / `answers6.json` (~3,000 words each) —
-  curated common words; the *only* pool `pickRandomAnswer(recent,
-  wordLength)` draws the target from.
-- `src/data/validGuesses.json` / `validGuesses6.json` (~29,800 /
-  ~67,400 words) — much larger superset, including obscure words;
-  `isValidWord(guess, wordLength)` checks submitted guesses against the
+- `src/data/answers.json` / `answersArchaic.json` / `answers6.json` —
+  curated pools; the *only* source `pickRandomAnswer(recent, modeId)`
+  draws the target from. Klasyczny/Rozszerzony have ~3,000 common words
+  each with no definitions; Archaizmy is a small, hand-curated list of
+  rare/archaic words, each carrying an inline definition (see below).
+- `src/data/validGuesses.json` / `validGuessesArchaic.json` /
+  `validGuesses6.json` — much larger superset used only to check "is
+  this a real word"; `isValidWord(guess, modeId)` checks against the
   matching one. A guess can be a real word here without ever being a
-  possible answer.
+  possible answer. `words.ts` unions each mode's own answer words into
+  its valid-guess `Set` at load time, so an answer is always guessable
+  even if the corresponding valid-guesses file doesn't otherwise contain
+  it (relevant for Archaizmy, whose words may predate/be missing from
+  the modern Hunspell-derived dictionary).
 
-All four are generated from the same Polish Hunspell dictionary via
-`scripts/wordlists/generate.py`; the `answers*.json` files are
-additionally filtered by word frequency and a profanity blocklist
-(applied only to the answer pool — profanity remains a *valid guess*,
-exactly like real Wordle).
+The Klasyczny/Rozszerzony four files are generated from the same Polish
+Hunspell dictionary via `scripts/wordlists/generate.py`; the
+`answers*.json` files it produces are additionally filtered by word
+frequency and a profanity blocklist (applied only to the answer pool —
+profanity remains a *valid guess*, exactly like real Wordle). The
+Archaizmy files (`answersArchaic.json` / `validGuessesArchaic.json`) are
+hand-curated instead — `generate.py` does not touch them.
 
-Word *length* (`WordLength`) and game *mode* (`GameModeId`) are separate
-axes — see `src/game/modes.ts`. The "Archaizmy" mode currently points at
-the same `wordLength: 5` as "Klasyczny", so it draws from the same
-`answers.json`/`validGuesses.json` pair; it's a placeholder until a
-genuinely rare/archaic word list is curated, kept as a distinct mode
-(own recent-answers history, own game counter) so that curation can
-happen later without touching UI code.
+#### Inline definitions for Archaizmy (`AnswerEntry`, `words.ts`)
+
+Because Archaizmy's words are genuinely obscure, `useGame` surfaces a
+definition on loss so the player learns what the word meant.
+Definitions are authored *inline* in `answersArchaic.json` as plain
+strings — `"SŁOWO (definicja)"` — rather than as a separate JSON
+structure or lookup table, so the word list stays a flat, easy-to-edit
+array a human can add to without touching code. `words.ts` parses every
+answers-file entry once at load time via `parseAnswerEntry()` into an
+`AnswerEntry { word, definition }`; entries with no parenthesised suffix
+(all of Klasyczny/Rozszerzony's) parse to `definition: null`.
+`pickRandomAnswer()` now returns the whole `AnswerEntry`, not just the
+word — `useGame.ts` keeps `definition` alongside `answer` in state and
+`App.tsx` passes it to `GameEndOverlay`, which renders it in a small box
+under the meta line only when `status === 'lost'` and a definition is
+present (`GameEndOverlay.tsx`, `.game-end-overlay__definition` in
+`App.css`). If you add more archaic words, follow the same
+`"SŁOWO (definicja)"` format; parentheses inside the definition text
+itself are fine, only the outermost pair is treated as the delimiter.
 
 ### Game logic lives in `src/game/`, isolated from UI on purpose
 

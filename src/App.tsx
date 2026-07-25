@@ -59,6 +59,7 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         <GameEndOverlay
           status={game.status === 'won' ? 'won' : 'lost'}
           word={game.answer}
+          definition={game.definition}
           guessCount={game.guesses.length}
           onPlayAgain={game.status === 'won' ? game.startNewGame : game.retrySameWord}
           onChangeMode={onChangeMode}

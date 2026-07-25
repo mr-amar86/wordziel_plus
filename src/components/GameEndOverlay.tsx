@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 interface GameEndOverlayProps {
   status: 'won' | 'lost';
   word: string;
+  definition?: string | null;
   guessCount: number;
   onPlayAgain: () => void;
   onChangeMode: () => void;
@@ -12,7 +13,7 @@ function triesLabel(count: number): string {
   return count === 1 ? 'w 1 próbie' : `w ${count} próbach`;
 }
 
-export function GameEndOverlay({ status, word, guessCount, onPlayAgain, onChangeMode }: GameEndOverlayProps) {
+export function GameEndOverlay({ status, word, definition, guessCount, onPlayAgain, onChangeMode }: GameEndOverlayProps) {
   const won = status === 'won';
 
   return (
@@ -36,6 +37,8 @@ export function GameEndOverlay({ status, word, guessCount, onPlayAgain, onChange
         <p className="game-end-overlay__meta">
           {won ? `Odgadnięte ${triesLabel(guessCount)}` : `Szukane słowo to: ${word}`}
         </p>
+
+        {!won && definition ? <p className="game-end-overlay__definition">{definition}</p> : null}
 
         <div className="game-end-overlay__actions">
           <button type="button" className="game-end-overlay__button game-end-overlay__button--primary" onClick={onPlayAgain}>

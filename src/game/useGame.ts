@@ -21,14 +21,17 @@ export function useGame(modeId: GameModeId) {
   // initializer: React StrictMode's dev-only double-render would invoke it
   // twice and burn a game number. A ref guard makes the increment run
   // exactly once per mount even under that double-render.
-  const initial = useRef<{ answer: string; gameNumber: number } | null>(null);
+  const initial = useRef<{ answer: string; definition: string | null; gameNumber: number } | null>(null);
   if (initial.current === null) {
+    const entry = pickRandomAnswer(loadRecentAnswers(modeId), modeId);
     initial.current = {
-      answer: pickRandomAnswer(loadRecentAnswers(modeId), wordLength),
+      answer: entry.word,
+      definition: entry.definition,
       gameNumber: nextGameNumber(modeId),
     };
   }
   const [answer, setAnswer] = useState<string>(initial.current.answer);
+  const [definition, setDefinition] = useState<string | null>(initial.current.definition);
   const [gameNumber, setGameNumber] = useState<number>(initial.current.gameNumber);
   const [guesses, setGuesses] = useState<GuessRow[]>([]);
   const [currentGuess, setCurrentGuess] = useState<string>('');
@@ -56,7 +59,9 @@ export function useGame(modeId: GameModeId) {
 
   const startNewGame = useCallback(() => {
     const recent = pushRecentAnswer(answer, RECENT_HISTORY_SIZE, modeId);
-    setAnswer(pickRandomAnswer(recent, wordLength));
+    const entry = pickRandomAnswer(recent, modeId);
+    setAnswer(entry.word);
+    setDefinition(entry.definition);
     setGameNumber(nextGameNumber(modeId));
     setGuesses([]);
     setCurrentGuess('');
@@ -101,7 +106,7 @@ export function useGame(modeId: GameModeId) {
       setTimeout(() => setShakeRow(null), 600);
       return;
     }
-    if (!isValidWord(currentGuess, wordLength)) {
+    if (!isValidWord(currentGuess, modeId)) {
       showMessage('Słowo nie znajduje się na liście');
       setShakeRow(guesses.length);
       setTimeout(() => setShakeRow(null), 600);
@@ -123,7 +128,7 @@ export function useGame(modeId: GameModeId) {
         setStatus('lost');
       }
     }, revealDuration);
-  }, [status, revealingRow, currentGuess, answer, guesses.length, showMessage, wordLength]);
+  }, [status, revealingRow, currentGuess, answer, guesses.length, showMessage, wordLength, modeId]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -143,6 +148,7 @@ export function useGame(modeId: GameModeId) {
 
   return {
     answer,
+    definition,
     gameNumber,
     guesses,
     currentGuess,

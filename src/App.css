@@ -414,6 +414,22 @@
   color: color-mix(in srgb, var(--color-text) 58%, transparent);
 }
 
+.game-end-overlay__meta:has(+ .game-end-overlay__definition) {
+  margin-bottom: 10px;
+}
+
+.game-end-overlay__definition {
+  margin: 0 0 22px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-divider);
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-accent) 8%);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: left;
+  color: color-mix(in srgb, var(--color-text) 80%, transparent);
+}
+
 .game-end-overlay__actions {
   display: flex;
   flex-direction: column;
