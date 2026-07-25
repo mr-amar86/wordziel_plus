@@ -4,7 +4,6 @@ import { isValidWord, pickRandomAnswer, RECENT_HISTORY_SIZE } from './words';
 import { loadRecentAnswers, nextGameNumber, pushRecentAnswer } from './storage';
 import { getGameMode } from './modes';
 import type { GameModeId } from './modes';
-import { MAX_GUESSES } from './types';
 import type { GameStatus, GuessRow, LetterState } from './types';
 
 const REVEAL_STEP_MS = 300;
@@ -15,7 +14,7 @@ function normalize(letter: string): string {
 }
 
 export function useGame(modeId: GameModeId) {
-  const { wordLength } = getGameMode(modeId);
+  const { wordLength, maxGuesses } = getGameMode(modeId);
 
   // nextGameNumber() mutates localStorage, so it can't live in a useState
   // initializer: React StrictMode's dev-only double-render would invoke it
@@ -74,7 +73,7 @@ export function useGame(modeId: GameModeId) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answer, modeId, wordLength]);
 
-  // Same word, fresh 6 guesses: used when the player wants another attempt
+  // Same word, fresh guesses: used when the player wants another attempt
   // at the word they just failed, from the lose overlay.
   const retrySameWord = useCallback(() => {
     setGuesses([]);
@@ -124,11 +123,11 @@ export function useGame(modeId: GameModeId) {
       setRevealingRow(null);
       if (currentGuess === answer) {
         setStatus('won');
-      } else if (rowIndex + 1 >= MAX_GUESSES) {
+      } else if (rowIndex + 1 >= maxGuesses) {
         setStatus('lost');
       }
     }, revealDuration);
-  }, [status, revealingRow, currentGuess, answer, guesses.length, showMessage, wordLength, modeId]);
+  }, [status, revealingRow, currentGuess, answer, guesses.length, showMessage, wordLength, modeId, maxGuesses]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

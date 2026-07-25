@@ -14,8 +14,9 @@ game" click picks a fresh random word, avoiding immediate repeats via a
 recent-answers history), a choice of three game modes picked on landing
 (5-letter "Klasyczny", 5-letter "Archaizmy", 6-letter "Rozszerzony"), a
 single dark theme (no light mode), and "present" letters are light blue
-instead of yellow. 6 guesses and the exact Wordle duplicate-letter
-coloring rule are otherwise preserved.
+instead of yellow. The exact Wordle duplicate-letter coloring rule is
+otherwise preserved; guess count is 6 except Rozszerzony's 7 (see
+`maxGuesses` below).
 
 ## Commands
 
@@ -131,9 +132,10 @@ itself are fine, only the outermost pair is treated as the delimiter.
   return value to components.
 - `modes.ts` — the `GameModeId` (`'classic' | 'archaic' | 'extended'`)
   registry: `GAME_MODES` is the ordered list `ModeSelect` renders as
-  cards, `getGameMode(id)` resolves a mode's `wordLength`/title/
-  description. This is the single source of truth for what modes exist —
-  adding a fourth mode is adding an entry here, not touching `ModeSelect.tsx`.
+  cards, `getGameMode(id)` resolves a mode's `wordLength`/`maxGuesses`/
+  title/description. This is the single source of truth for what modes
+  exist — adding a fourth mode is adding an entry here, not touching
+  `ModeSelect.tsx`.
 - `storage.ts` — the only `localStorage` access: the last-played
   `GameModeId` (`loadLastMode`/`saveLastMode`), and, keyed per mode,
   recent-answers history (repeat avoidance) and a cosmetic per-browser
@@ -231,8 +233,12 @@ that ends up relying on 700 without also widening that font request.
 ### Game mode is selectable, threaded as a prop — not global state
 
 `GameModeId` (`src/game/modes.ts`) is `'classic' | 'archaic' | 'extended'`;
-each resolves to a `WordLength` via `getGameMode()`. `MAX_GUESSES` stays a
-fixed constant (6 guesses regardless of mode). There is deliberately no
+each resolves to a `WordLength` and a `maxGuesses` via `getGameMode()`.
+`maxGuesses` is per-mode, not a fixed constant: Klasyczny/Archaizmy get 6,
+Rozszerzony gets 7 (its 6-letter word is a bigger search space, so it
+earns an extra guess) — `Board`'s row count and `useGame`'s
+win/loss-on-exhaustion check both read it from `getGameMode(modeId)`
+rather than a shared constant. There is deliberately no
 global "current mode" — it's a plain prop threaded from `App.tsx` down,
 because `useGame(modeId)` calls `useState`/`useRef` internally and can't
 be called conditionally, so mode can't just be a piece of state read
@@ -250,11 +256,12 @@ inside one always-mounted hook.
   React-StrictMode-safe pattern above still correct here.
 - `GameScreen` (defined in `App.tsx`, not split into its own file) is what
   the old flat `App.tsx` used to be: it calls `useGame(modeId)` and wires
-  the result to `Board`/`Keyboard`/etc., resolving `wordLength`/`title`
-  from `getGameMode(modeId)` for `Board` (grid sizing), `Header` (subtitle)
-  and `HowToPlayModal` (intro text — the three example tile rows stay
-  fixed at 5 tiles regardless of mode; they're just an illustration of
-  the coloring rule, not a live board).
+  the result to `Board`/`Keyboard`/etc., resolving `wordLength`/`maxGuesses`/
+  `title` from `getGameMode(modeId)` for `Board` (grid sizing and row
+  count), `Header` (subtitle), and `HowToPlayModal` (intro text, including
+  the try count — the three example tile rows stay fixed at 5 tiles
+  regardless of mode; they're just an illustration of the coloring rule,
+  not a live board).
 - The header's "Zmień" link next to `Gra nr N · {modeTitle}` calls
   `onChangeMode`, which sets `mode` back to `null` — this abandons the
   in-progress game with no confirmation prompt, by design.

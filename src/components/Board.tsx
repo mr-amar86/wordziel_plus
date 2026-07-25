@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react';
 import { Tile } from './Tile';
-import { MAX_GUESSES } from '../game/types';
 import type { GuessRow, WordLength } from '../game/types';
 
 interface BoardProps {
   wordLength: WordLength;
+  maxGuesses: number;
   guesses: GuessRow[];
   currentGuess: string;
   revealingRow: number | null;
@@ -14,8 +14,8 @@ interface BoardProps {
 
 const REVEAL_STEP_MS = 300;
 
-export function Board({ wordLength, guesses, currentGuess, revealingRow, shakeRow, won }: BoardProps) {
-  const rows = Array.from({ length: MAX_GUESSES }, (_, rowIndex) => {
+export function Board({ wordLength, maxGuesses, guesses, currentGuess, revealingRow, shakeRow, won }: BoardProps) {
+  const rows = Array.from({ length: maxGuesses }, (_, rowIndex) => {
     const completed = guesses[rowIndex];
     const isCurrent = rowIndex === guesses.length;
     const isRevealing = rowIndex === revealingRow;

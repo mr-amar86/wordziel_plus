@@ -10,5 +10,3 @@ export type GuessRow = EvaluatedLetter[];
 export type GameStatus = 'playing' | 'won' | 'lost';
 
 export type WordLength = 5 | 6;
-
-export const MAX_GUESSES = 6;

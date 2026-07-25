@@ -5,6 +5,7 @@ export type GameModeId = 'classic' | 'archaic' | 'extended';
 export interface GameModeConfig {
   id: GameModeId;
   wordLength: WordLength;
+  maxGuesses: number;
   title: string;
   description: string;
 }
@@ -14,10 +15,14 @@ export interface GameModeConfig {
 // genuinely rare/archaic word list is curated. They're still tracked as
 // distinct modes (separate recent-answers history and game counter, see
 // storage.ts) so that curation can happen later without touching UI code.
+//
+// maxGuesses is per-mode rather than a fixed constant: Rozszerzony's
+// 6-letter word gets a 7th guess to offset the larger search space, while
+// Klasyczny/Archaizmy keep the standard 6.
 export const GAME_MODES: GameModeConfig[] = [
-  { id: 'classic', wordLength: 5, title: 'Klasyczny', description: 'Popularne polskie słowa. 6 prób.' },
-  { id: 'archaic', wordLength: 5, title: 'Archaizmy', description: 'Rzadkie, staropolskie słowa.' },
-  { id: 'extended', wordLength: 6, title: 'Rozszerzony', description: 'Dłuższe słowo, większe wyzwanie.' },
+  { id: 'classic', wordLength: 5, maxGuesses: 6, title: 'Klasyczny', description: 'Popularne polskie słowa. 6 prób.' },
+  { id: 'archaic', wordLength: 5, maxGuesses: 6, title: 'Archaizmy', description: 'Rzadkie, staropolskie słowa.' },
+  { id: 'extended', wordLength: 6, maxGuesses: 7, title: 'Rozszerzony', description: 'Dłuższe słowo, większe wyzwanie. 7 prób.' },
 ];
 
 const GAME_MODES_BY_ID: Record<GameModeId, GameModeConfig> = Object.fromEntries(

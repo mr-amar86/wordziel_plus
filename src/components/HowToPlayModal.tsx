@@ -2,6 +2,7 @@ import type { WordLength } from '../game/types';
 
 interface HowToPlayModalProps {
   wordLength: WordLength;
+  maxGuesses: number;
   onClose: () => void;
 }
 
@@ -10,7 +11,7 @@ const LENGTH_ADJECTIVE: Record<WordLength, string> = {
   6: 'sześcioliterowym',
 };
 
-export function HowToPlayModal({ wordLength, onClose }: HowToPlayModalProps) {
+export function HowToPlayModal({ wordLength, maxGuesses, onClose }: HowToPlayModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -21,7 +22,10 @@ export function HowToPlayModal({ wordLength, onClose }: HowToPlayModalProps) {
           </button>
         </div>
         <div className="modal__body">
-          <p>Odgadnij słowo w 6 próbach. Każda próba musi być prawdziwym, {LENGTH_ADJECTIVE[wordLength]} słowem.</p>
+          <p>
+            Odgadnij słowo w {maxGuesses} próbach. Każda próba musi być prawdziwym,{' '}
+            {LENGTH_ADJECTIVE[wordLength]} słowem.
+          </p>
           <p>Po każdej próbie kolor płytek pokaże, jak blisko byłeś odpowiedzi.</p>
 
           <div className="modal__example">

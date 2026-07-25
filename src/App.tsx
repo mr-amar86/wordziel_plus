@@ -20,7 +20,7 @@ interface GameScreenProps {
 function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
   const [showHelp, setShowHelp] = useState(false);
   const game = useGame(modeId);
-  const { wordLength, title } = getGameMode(modeId);
+  const { wordLength, maxGuesses, title } = getGameMode(modeId);
 
   const inputDisabled = game.status !== 'playing' || game.revealingRow !== null;
   const settled = game.status !== 'playing' && game.revealingRow === null;
@@ -38,6 +38,7 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         <Toast message={game.message} />
         <Board
           wordLength={wordLength}
+          maxGuesses={maxGuesses}
           guesses={game.guesses}
           currentGuess={game.currentGuess}
           revealingRow={game.revealingRow}
@@ -53,7 +54,9 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         />
       </main>
 
-      {showHelp ? <HowToPlayModal wordLength={wordLength} onClose={() => setShowHelp(false)} /> : null}
+      {showHelp ? (
+        <HowToPlayModal wordLength={wordLength} maxGuesses={maxGuesses} onClose={() => setShowHelp(false)} />
+      ) : null}
 
       {settled ? (
         <GameEndOverlay
