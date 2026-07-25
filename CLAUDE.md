@@ -11,12 +11,12 @@ client-side. Deploys as static files (Firebase Hosting on GCP).
 
 Differences from the original Wordle: no daily-word limit (every "new
 game" click picks a fresh random word, avoiding immediate repeats via a
-recent-answers history), a choice of three game modes picked on landing
-(5-letter "Klasyczny", 5-letter "Archaizmy", 6-letter "Rozszerzony"), a
-single dark theme (no light mode), and "present" letters are light blue
-instead of yellow. The exact Wordle duplicate-letter coloring rule is
-otherwise preserved; guess count is 6 except Rozszerzony's 7 (see
-`maxGuesses` below).
+recent-answers history), a choice of four game modes picked on landing
+(5-letter "Klasyczny", 5-letter "Archaizmy", 6-letter "Rozszerzony",
+5-letter hard-mode "Trudny"), a single dark theme (no light mode), and
+"present" letters are light blue instead of yellow. The exact Wordle
+duplicate-letter coloring rule is otherwise preserved; guess count is
+6 except Rozszerzony's 7 (see `maxGuesses` below).
 
 ## Commands
 
@@ -130,12 +130,12 @@ itself are fine, only the outermost pair is treated as the delimiter.
   lifetime, a mode switch remounts it (see below) rather than mutating it
   in place. `App.tsx`'s `GameScreen` is mostly just wiring this hook's
   return value to components.
-- `modes.ts` — the `GameModeId` (`'classic' | 'archaic' | 'extended'`)
-  registry: `GAME_MODES` is the ordered list `ModeSelect` renders as
-  cards, `getGameMode(id)` resolves a mode's `wordLength`/`maxGuesses`/
-  title/description. This is the single source of truth for what modes
-  exist — adding a fourth mode is adding an entry here, not touching
-  `ModeSelect.tsx`.
+- `modes.ts` — the `GameModeId`
+  (`'classic' | 'archaic' | 'extended' | 'hard'`) registry: `GAME_MODES` is
+  the ordered list `ModeSelect` renders as cards, `getGameMode(id)`
+  resolves a mode's `wordLength`/`maxGuesses`/`hardMode`/title/
+  description. This is the single source of truth for what modes exist —
+  adding a fifth mode is adding an entry here, not touching `ModeSelect.tsx`.
 - `storage.ts` — the only `localStorage` access: the last-played
   `GameModeId` (`loadLastMode`/`saveLastMode`), and, keyed per mode,
   recent-answers history (repeat avoidance) and a cosmetic per-browser
@@ -232,11 +232,12 @@ that ends up relying on 700 without also widening that font request.
 
 ### Game mode is selectable, threaded as a prop — not global state
 
-`GameModeId` (`src/game/modes.ts`) is `'classic' | 'archaic' | 'extended'`;
-each resolves to a `WordLength` and a `maxGuesses` via `getGameMode()`.
-`maxGuesses` is per-mode, not a fixed constant: Klasyczny/Archaizmy get 6,
-Rozszerzony gets 7 (its 6-letter word is a bigger search space, so it
-earns an extra guess) — `Board`'s row count and `useGame`'s
+`GameModeId` (`src/game/modes.ts`) is
+`'classic' | 'archaic' | 'extended' | 'hard'`; each resolves to a
+`WordLength`, a `maxGuesses`, and a `hardMode` flag via `getGameMode()`.
+`maxGuesses` is per-mode, not a fixed constant: Klasyczny/Archaizmy/Trudny
+get 6, Rozszerzony gets 7 (its 6-letter word is a bigger search space, so
+it earns an extra guess) — `Board`'s row count and `useGame`'s
 win/loss-on-exhaustion check both read it from `getGameMode(modeId)`
 rather than a shared constant. There is deliberately no
 global "current mode" — it's a plain prop threaded from `App.tsx` down,
@@ -261,7 +262,8 @@ inside one always-mounted hook.
   count), `Header` (subtitle), and `HowToPlayModal` (intro text, including
   the try count — the three example tile rows stay fixed at 5 tiles
   regardless of mode; they're just an illustration of the coloring rule,
-  not a live board).
+  not a live board). `hardMode` itself is read inside `useGame`, not
+  threaded through `GameScreen` — no component needs to know about it.
 - The header's "Zmień" link next to `Gra nr N · {modeTitle}` calls
   `onChangeMode`, which sets `mode` back to `null` — this abandons the
   in-progress game with no confirmation prompt, by design.
@@ -269,3 +271,22 @@ inside one always-mounted hook.
   `.board__row` reads it via `grid-template-columns: repeat(var(--word-length), ...)`
   in both the base and the `max-width: 380px` rule. Don't reintroduce a
   hardcoded `repeat(5, ...)` there.
+
+### Trudny is Klasyczny's word pool plus a hard-mode guess constraint
+
+`words.ts`'s `ANSWER_ENTRIES`/`VALID_GUESSES` point `hard` at the same
+`CLASSIC_ANSWER_ENTRIES`/`CLASSIC_VALID_GUESSES` arrays `classic` uses
+(not a copy) — Trudny isn't a different word list, its difficulty comes
+entirely from `src/game/hardMode.ts`'s `findHardModeViolation()`, the
+standard Wordle "Hard Mode" rule: once a letter is revealed `correct` in a
+position, every later guess must repeat that letter in that exact
+position; once a letter is revealed `correct` or `present` at all, every
+later guess must contain it at least as many times as it was last
+confirmed (so a double letter revealed twice can't be dropped to one).
+`useGame.submitGuess` calls it only when `getGameMode(modeId).hardMode` is
+true, after the existing length/dictionary checks and before scoring the
+guess, surfacing a violation through the same `showMessage`/`shakeRow`
+path as "Za mało liter" / "Słowo nie znajduje się na liście" — it's not a
+new UI affordance, just a third rejection reason. If another mode ever
+wants this rule, flip its `hardMode` flag in `modes.ts`; the check itself
+doesn't hardcode `'hard'` anywhere.

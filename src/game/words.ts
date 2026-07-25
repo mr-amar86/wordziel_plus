@@ -29,13 +29,18 @@ function parseAnswerEntry(raw: string): AnswerEntry {
 // Answers: curated pool the random target is drawn from, per game mode.
 // Valid guesses: much larger superset used only to check "is this a real
 // word". Each mode has its own pair of lists -- Klasyczny and Rozszerzony
-// differ only by word length, but Archaizmy draws from a wholly separate,
-// hand-curated rare/archaic word list even though it shares Klasyczny's
-// 5-letter length.
+// differ only by word length, Trudny reuses Klasyczny's pool verbatim (its
+// difficulty comes entirely from the hard-mode guess constraint, see
+// modes.ts), and Archaizmy draws from a wholly separate, hand-curated
+// rare/archaic word list even though it shares Klasyczny's 5-letter length.
+const CLASSIC_ANSWER_ENTRIES = (answers5Data as string[]).map(parseAnswerEntry);
+const CLASSIC_VALID_GUESSES = new Set(validGuesses5Data as string[]);
+
 const ANSWER_ENTRIES: Record<GameModeId, readonly AnswerEntry[]> = {
-  classic: (answers5Data as string[]).map(parseAnswerEntry),
+  classic: CLASSIC_ANSWER_ENTRIES,
   archaic: (answersArchaicData as string[]).map(parseAnswerEntry),
   extended: (answers6Data as string[]).map(parseAnswerEntry),
+  hard: CLASSIC_ANSWER_ENTRIES,
 };
 
 // The answer pool's own words are folded into the valid-guess set so a
@@ -43,12 +48,13 @@ const ANSWER_ENTRIES: Record<GameModeId, readonly AnswerEntry[]> = {
 // that predate/are missing from the modern Hunspell-derived dictionary
 // validGuessesArchaic.json is built from.
 const VALID_GUESSES: Record<GameModeId, ReadonlySet<string>> = {
-  classic: new Set(validGuesses5Data as string[]),
+  classic: CLASSIC_VALID_GUESSES,
   archaic: new Set([
     ...(validGuessesArchaicData as string[]),
     ...ANSWER_ENTRIES.archaic.map((entry) => entry.word),
   ]),
   extended: new Set(validGuesses6Data as string[]),
+  hard: CLASSIC_VALID_GUESSES,
 };
 
 // How many previous answers to avoid repeating immediately. Kept isolated

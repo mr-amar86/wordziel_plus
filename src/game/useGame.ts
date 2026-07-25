@@ -4,6 +4,7 @@ import { isValidWord, pickRandomAnswer, RECENT_HISTORY_SIZE } from './words';
 import { loadRecentAnswers, nextGameNumber, pushRecentAnswer } from './storage';
 import { getGameMode } from './modes';
 import type { GameModeId } from './modes';
+import { findHardModeViolation } from './hardMode';
 import type { GameStatus, GuessRow, LetterState } from './types';
 
 const REVEAL_STEP_MS = 300;
@@ -14,7 +15,7 @@ function normalize(letter: string): string {
 }
 
 export function useGame(modeId: GameModeId) {
-  const { wordLength, maxGuesses } = getGameMode(modeId);
+  const { wordLength, maxGuesses, hardMode } = getGameMode(modeId);
 
   // nextGameNumber() mutates localStorage, so it can't live in a useState
   // initializer: React StrictMode's dev-only double-render would invoke it
@@ -112,6 +113,16 @@ export function useGame(modeId: GameModeId) {
       return;
     }
 
+    if (hardMode) {
+      const violation = findHardModeViolation(currentGuess, guesses, wordLength);
+      if (violation) {
+        showMessage(violation);
+        setShakeRow(guesses.length);
+        setTimeout(() => setShakeRow(null), 600);
+        return;
+      }
+    }
+
     const evaluated = evaluateGuess(currentGuess, answer);
     const rowIndex = guesses.length;
     setGuesses((rows) => [...rows, evaluated]);
@@ -127,7 +138,7 @@ export function useGame(modeId: GameModeId) {
         setStatus('lost');
       }
     }, revealDuration);
-  }, [status, revealingRow, currentGuess, answer, guesses.length, showMessage, wordLength, modeId, maxGuesses]);
+  }, [status, revealingRow, currentGuess, answer, guesses, showMessage, wordLength, modeId, maxGuesses, hardMode]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
