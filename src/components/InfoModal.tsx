@@ -15,8 +15,8 @@ export function InfoModal({ onClose }: InfoModalProps) {
         <div className="modal__body">
           <h3>Polityka prywatności</h3>
           <p>
-            Zgadula nie zbiera żadnych danych osobowych i nie korzysta z kont
-            użytkowników. Postęp gry (numer gry oraz historia ostatnio
+            zgadu-zgadu nie zbiera żadnych danych osobowych i nie korzysta z
+            kont użytkowników. Postęp gry (numer gry oraz historia ostatnio
             wylosowanych słów) jest zapisywany wyłącznie lokalnie, w pamięci
             Twojej przeglądarki, i nigdy nie opuszcza Twojego urządzenia.
           </p>
@@ -24,13 +24,13 @@ export function InfoModal({ onClose }: InfoModalProps) {
           <h3>Kontakt</h3>
           <p>
             Masz pytanie, uwagę albo znalazłeś błąd? Napisz na adres:{' '}
-            <strong>kontakt@zgadula.example</strong>.
+            <strong>kontakt@zgadu-zgadu.example</strong>.
           </p>
 
           <h3>O aplikacji</h3>
           <p>
-            Zgadula to niezależna gra słowna inspirowana Wordle, tworzona jako
-            projekt hobbystyczny.
+            zgadu-zgadu to niezależna gra słowna inspirowana Wordle, tworzona
+            jako projekt hobbystyczny.
           </p>
 
           <p className="modal__note">To są przykładowe treści — zostaną zaktualizowane wkrótce.</p>

@@ -14,7 +14,7 @@ export function Header({ gameNumber, modeTitle, onChangeMode, onShowHelp }: Head
         </button>
       </div>
       <div className="header__title">
-        <h1>Zgadula</h1>
+        <h1>zgadu-zgadu</h1>
         <p className="header__subtitle">
           Gra nr {gameNumber} · {modeTitle}{' '}
           <button type="button" className="header__mode-switch" onClick={onChangeMode}>
