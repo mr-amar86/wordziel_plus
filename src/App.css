@@ -22,6 +22,11 @@
   display: flex;
 }
 
+.header__side--left {
+  width: auto;
+  gap: 2px;
+}
+
 .header__side--right {
   justify-content: flex-end;
 }
@@ -72,15 +77,6 @@
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
-.info-button {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  z-index: 10;
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider);
-}
-
 /* Main layout */
 .main {
   flex: 1;
@@ -90,7 +86,7 @@
   align-items: center;
   justify-content: center;
   gap: clamp(6px, 1.6svh, 28px);
-  padding: clamp(4px, 1svh, 16px) 8px calc(clamp(4px, 1svh, 16px) + 44px);
+  padding: clamp(4px, 1svh, 16px) 8px;
   position: relative;
   overflow: hidden;
 }

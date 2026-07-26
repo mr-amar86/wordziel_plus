@@ -21,6 +21,7 @@ interface GameScreenProps {
 
 function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
   const [showHelp, setShowHelp] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const game = useGame(modeId);
   const { wordLength, maxGuesses, title } = getGameMode(modeId);
 
@@ -34,6 +35,7 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         modeTitle={title}
         onChangeMode={onChangeMode}
         onShowHelp={() => setShowHelp(true)}
+        onShowInfo={() => setShowInfo(true)}
       />
 
       <main className="main">
@@ -69,6 +71,8 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         <HowToPlayModal wordLength={wordLength} maxGuesses={maxGuesses} onClose={() => setShowHelp(false)} />
       ) : null}
 
+      {showInfo ? <InfoModal onClose={() => setShowInfo(false)} /> : null}
+
       {settled ? (
         <GameEndOverlay
           status={game.status === 'won' ? 'won' : 'lost'}
@@ -85,43 +89,19 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
 
 function App() {
   const [mode, setMode] = useState<GameModeId | null>(() => loadLastMode());
-  const [showInfo, setShowInfo] = useState(false);
 
-  return (
-    <>
-      {mode === null ? (
-        <ModeSelect
-          onSelect={(modeId) => {
-            saveLastMode(modeId);
-            setMode(modeId);
-          }}
-        />
-      ) : (
-        <GameScreen key={mode} modeId={mode} onChangeMode={() => setMode(null)} />
-      )}
+  if (mode === null) {
+    return (
+      <ModeSelect
+        onSelect={(modeId) => {
+          saveLastMode(modeId);
+          setMode(modeId);
+        }}
+      />
+    );
+  }
 
-      <button
-        type="button"
-        className="icon-button info-button"
-        aria-label="Informacje"
-        onClick={() => setShowInfo(true)}
-      >
-        <InfoIcon />
-      </button>
-
-      {showInfo ? <InfoModal onClose={() => setShowInfo(false)} /> : null}
-    </>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="11" x2="12" y2="16" strokeLinecap="round" />
-      <circle cx="12" cy="7.5" r="0.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
+  return <GameScreen key={mode} modeId={mode} onChangeMode={() => setMode(null)} />;
 }
 
 export default App;
