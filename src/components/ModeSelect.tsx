@@ -8,10 +8,10 @@ interface ModeSelectProps {
 export function ModeSelect({ onSelect }: ModeSelectProps) {
   return (
     <div className="mode-select">
-      <h1 className="mode-select__title">Wordziel Plus</h1>
+      <h1 className="mode-select__title">Zgadula</h1>
       <p className="mode-select__subtitle">Wybierz tryb gry</p>
       <div className="mode-select__list">
-        {GAME_MODES.map((mode) => (
+        {GAME_MODES.filter((mode) => !mode.hidden).map((mode) => (
           <button
             key={mode.id}
             type="button"

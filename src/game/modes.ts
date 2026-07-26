@@ -9,6 +9,7 @@ export interface GameModeConfig {
   hardMode: boolean;
   title: string;
   description: string;
+  hidden?: boolean;
 }
 
 // Klasyczny, Archaizmy, and Trudny currently draw from the same 5-letter
@@ -30,9 +31,9 @@ export interface GameModeConfig {
 // the standard Wordle "Hard Mode" rule. Only Trudny opts in.
 export const GAME_MODES: GameModeConfig[] = [
   { id: 'classic', wordLength: 5, maxGuesses: 6, hardMode: false, title: 'Klasyczny', description: 'Popularne polskie słowa. 6 prób.' },
-  { id: 'archaic', wordLength: 5, maxGuesses: 6, hardMode: false, title: 'Archaizmy', description: 'Rzadkie, staropolskie słowa.' },
-  { id: 'extended', wordLength: 6, maxGuesses: 7, hardMode: false, title: 'Rozszerzony', description: 'Dłuższe słowo, większe wyzwanie. 7 prób.' },
   { id: 'hard', wordLength: 5, maxGuesses: 6, hardMode: true, title: 'Trudny', description: 'Odkryte litery musisz wykorzystać w kolejnych próbach.' },
+  { id: 'extended', wordLength: 6, maxGuesses: 7, hardMode: false, title: 'Rozszerzony', description: 'Dłuższe słowo, większe wyzwanie. 7 prób.' },
+  { id: 'archaic', wordLength: 5, maxGuesses: 6, hardMode: false, title: 'Archaizmy', description: 'Rzadkie, staropolskie słowa.', hidden: true },
 ];
 
 const GAME_MODES_BY_ID: Record<GameModeId, GameModeConfig> = Object.fromEntries(
