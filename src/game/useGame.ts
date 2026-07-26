@@ -4,6 +4,7 @@ import { isValidWord, pickRandomAnswer, RECENT_HISTORY_SIZE } from './words';
 import { loadRecentAnswers, nextGameNumber, pushRecentAnswer } from './storage';
 import { getGameMode } from './modes';
 import type { GameModeId } from './modes';
+import { trackNewGame } from './analytics';
 import { findHardModeViolation } from './hardMode';
 import type { GameStatus, GuessRow, LetterState } from './types';
 
@@ -213,6 +214,23 @@ export function useGame(modeId: GameModeId) {
       }
     }, revealDuration);
   }, [status, revealingRow, currentGuess, answer, guesses, showMessage, wordLength, modeId, maxGuesses, hardMode]);
+
+  // gameNumber only advances on a genuinely fresh word (initial mount and
+  // startNewGame both call nextGameNumber) -- retrySameWord deliberately
+  // leaves it untouched, so it doubles as the "a new game just started"
+  // signal without needing a separate effect dependency. The ref guard
+  // below exists for the same reason as nextGameNumber's ref guard above:
+  // dev-mode StrictMode double-invokes this effect on mount (fire ->
+  // cleanup -> fire again) with an unchanged gameNumber, which would
+  // double-report the very first game. Skipping a repeat of the same
+  // gameNumber makes the tracked count match production, where React
+  // doesn't double-invoke effects.
+  const lastTrackedGameNumber = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastTrackedGameNumber.current === gameNumber) return;
+    lastTrackedGameNumber.current = gameNumber;
+    trackNewGame(modeId);
+  }, [gameNumber, modeId]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
