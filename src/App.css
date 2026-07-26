@@ -70,6 +70,15 @@
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
+.info-button {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 10;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+}
+
 /* Main layout */
 .main {
   flex: 1;
@@ -669,6 +678,16 @@
 .modal__body p {
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.modal__body h3 {
+  margin: 18px 0 4px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.modal__body h3:first-child {
+  margin-top: 0;
 }
 
 .modal__example {
