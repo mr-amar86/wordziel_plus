@@ -4,7 +4,7 @@ import { isValidWord, pickRandomAnswer, RECENT_HISTORY_SIZE } from './words';
 import { loadRecentAnswers, nextGameNumber, pushRecentAnswer } from './storage';
 import { getGameMode } from './modes';
 import type { GameModeId } from './modes';
-import { trackNewGame } from './analytics';
+import { trackGameLost, trackGameWon, trackNewGame } from './analytics';
 import { findHardModeViolation } from './hardMode';
 import type { GameStatus, GuessRow, LetterState } from './types';
 
@@ -209,8 +209,10 @@ export function useGame(modeId: GameModeId) {
       setRevealingRow(null);
       if (currentGuess === answer) {
         setStatus('won');
+        trackGameWon(modeId);
       } else if (rowIndex + 1 >= maxGuesses) {
         setStatus('lost');
+        trackGameLost(modeId);
       }
     }, revealDuration);
   }, [status, revealingRow, currentGuess, answer, guesses, showMessage, wordLength, modeId, maxGuesses, hardMode]);

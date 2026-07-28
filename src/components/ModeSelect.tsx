@@ -1,13 +1,24 @@
 import { GAME_MODES } from '../game/modes';
 import type { GameModeId } from '../game/modes';
+import { HelpIcon, InfoIcon } from './icons';
 
 interface ModeSelectProps {
   onSelect: (modeId: GameModeId) => void;
+  onShowHelp: () => void;
+  onShowInfo: () => void;
 }
 
-export function ModeSelect({ onSelect }: ModeSelectProps) {
+export function ModeSelect({ onSelect, onShowHelp, onShowInfo }: ModeSelectProps) {
   return (
     <div className="mode-select">
+      <div className="mode-select__icons">
+        <button type="button" className="icon-button" aria-label="Jak grać" onClick={onShowHelp}>
+          <HelpIcon />
+        </button>
+        <button type="button" className="icon-button" aria-label="Informacje" onClick={onShowInfo}>
+          <InfoIcon />
+        </button>
+      </div>
       <h1 className="mode-select__title">zgadu-zgadu</h1>
       <p className="mode-select__subtitle">Wybierz tryb gry</p>
       <div className="mode-select__list">

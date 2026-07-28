@@ -20,3 +20,33 @@ export function trackNewGame(modeId: GameModeId): void {
     game_version: GAME_VERSION_BY_MODE[modeId],
   });
 }
+
+export function trackGameWon(modeId: GameModeId): void {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'game_won',
+    game_version: GAME_VERSION_BY_MODE[modeId],
+  });
+}
+
+export function trackGameLost(modeId: GameModeId): void {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'game_lost',
+    game_version: GAME_VERSION_BY_MODE[modeId],
+  });
+}
+
+export function trackHelpOpened(): void {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'help_opened',
+  });
+}
+
+export function trackInfoOpened(): void {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'info_opened',
+  });
+}

@@ -12,6 +12,7 @@ import { useGame } from './game/useGame';
 import { loadLastMode, saveLastMode } from './game/storage';
 import { getGameMode } from './game/modes';
 import type { GameModeId } from './game/modes';
+import { trackHelpOpened, trackInfoOpened } from './game/analytics';
 import './App.css';
 
 interface GameScreenProps {
@@ -34,8 +35,14 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
         gameNumber={game.gameNumber}
         modeTitle={title}
         onChangeMode={onChangeMode}
-        onShowHelp={() => setShowHelp(true)}
-        onShowInfo={() => setShowInfo(true)}
+        onShowHelp={() => {
+          setShowHelp(true);
+          trackHelpOpened();
+        }}
+        onShowInfo={() => {
+          setShowInfo(true);
+          trackInfoOpened();
+        }}
       />
 
       <main className="main">
@@ -89,15 +96,34 @@ function GameScreen({ modeId, onChangeMode }: GameScreenProps) {
 
 function App() {
   const [mode, setMode] = useState<GameModeId | null>(() => loadLastMode());
+  const [showHelp, setShowHelp] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   if (mode === null) {
+    const { wordLength, maxGuesses } = getGameMode('classic');
     return (
-      <ModeSelect
-        onSelect={(modeId) => {
-          saveLastMode(modeId);
-          setMode(modeId);
-        }}
-      />
+      <>
+        <ModeSelect
+          onSelect={(modeId) => {
+            saveLastMode(modeId);
+            setMode(modeId);
+          }}
+          onShowHelp={() => {
+            setShowHelp(true);
+            trackHelpOpened();
+          }}
+          onShowInfo={() => {
+            setShowInfo(true);
+            trackInfoOpened();
+          }}
+        />
+
+        {showHelp ? (
+          <HowToPlayModal wordLength={wordLength} maxGuesses={maxGuesses} onClose={() => setShowHelp(false)} />
+        ) : null}
+
+        {showInfo ? <InfoModal onClose={() => setShowInfo(false)} /> : null}
+      </>
     );
   }
 
