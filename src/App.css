@@ -595,6 +595,7 @@
 
 /* Keyboard */
 .keyboard {
+  container-type: inline-size;
   width: 100%;
   max-width: 480px;
   display: flex;
@@ -611,8 +612,14 @@
 
 .key {
   flex: 1;
-  max-width: 40px;
-  height: min(48px, 5.2svh);
+  max-width: 42px;
+  /* Height tracks the keyboard's own width (not each key's, so wide
+     keys like ENTER/BACKSPACE stay the same height as letter keys)
+     rather than viewport height, so the same iPhone-like ~1.3 ratio
+     holds however cramped or narrow the row ends up. */
+  height: 13cqw;
+  max-height: 58px;
+  min-height: 32px;
   border: none;
   border-radius: var(--radius-sm);
   background: var(--key-bg);
@@ -746,8 +753,5 @@
 @media (max-width: 380px) {
   .board__row {
     grid-template-columns: repeat(var(--word-length), min(44px, 5.6svh));
-  }
-  .key {
-    height: min(44px, 4.9svh);
   }
 }
