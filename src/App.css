@@ -615,11 +615,11 @@
   max-width: 42px;
   /* Height tracks the keyboard's own width (not each key's, so wide
      keys like ENTER/BACKSPACE stay the same height as letter keys)
-     rather than viewport height, so the same ~1.15 ratio holds however
+     rather than viewport height, so the same ~1.2 ratio holds however
      cramped or narrow the row ends up. */
-  height: 9.5cqw;
-  max-height: 42px;
-  min-height: 28px;
+  height: 10.3cqw;
+  max-height: 45px;
+  min-height: 29px;
   border: none;
   border-radius: var(--radius-sm);
   background: var(--key-bg);
