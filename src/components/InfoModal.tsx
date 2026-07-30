@@ -20,11 +20,23 @@ export function InfoModal({ onClose }: InfoModalProps) {
             wylosowanych słów) jest zapisywany wyłącznie lokalnie, w pamięci
             Twojej przeglądarki, i nigdy nie opuszcza Twojego urządzenia.
           </p>
-
-          <h3>Kontakt</h3>
           <p>
-            Masz pytanie, uwagę albo znalazłeś błąd? Napisz na adres:{' '}
-            <strong>kontakt@zgadu-zgadu.example</strong>.
+            Strona korzysta z Google Analytics wyłącznie po to, by policzyć
+            liczbę odwiedzin i rozegranych gier — to zanonimizowane,
+            zbiorcze statystyki, nie pojedyncze profile użytkowników. Google
+            Analytics może zapisywać w przeglądarce pliki cookie.
+            Statystyki te nie są sprzedawane ani udostępniane serwisom
+            reklamowym, a strona nie wyświetla żadnych reklam. Zbieranie
+            statystyk można zablokować w ustawieniach przeglądarki lub za
+            pomocą{' '}
+            <a
+              href="https://tools.google.com/dlpage/gaoptout"
+              target="_blank"
+              rel="noreferrer"
+            >
+              dodatku blokującego Google Analytics
+            </a>
+            .
           </p>
 
           <h3>O aplikacji</h3>
@@ -32,8 +44,6 @@ export function InfoModal({ onClose }: InfoModalProps) {
             zgadu-zgadu to niezależna gra słowna inspirowana Wordle, tworzona
             jako projekt hobbystyczny.
           </p>
-
-          <p className="modal__note">To są przykładowe treści — zostaną zaktualizowane wkrótce.</p>
         </div>
       </div>
     </div>
